@@ -1,1 +1,1 @@
-huj 
+print("alkohol szkodzi zdrowiu")
