@@ -1,1 +1,1 @@
-huj 
+print("Paweł to kolega")
