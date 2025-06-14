@@ -64,11 +64,40 @@ class Gra:
         karta = self.odrzucone[-1]
         k_docelowa = self.kolumny[docelowa]
 
-        if (not k_docelowa and karta.ranga == 13) or (k_docelowa and karta.kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karta.ranga == k_docelowa[-1].ranga - 1): #Pusta kolumna i król
+        if (not k_docelowa and karta.ranga == 13) or \
+            (k_docelowa and karta.kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karta.ranga == k_docelowa[-1].ranga - 1): #Pusta kolumna i król
             self.odrzucone.pop()
             k_docelowa.append(karta)
             return True
         
+        return False
+    
+    def przenies_ze_stosu_do_fundamentu(self):
+        """Przenieś odkrytą kartę ze stosu do fundamentu"""
+        if not self.odrzucone:
+            return False
+        karta = self.odrzucone[-1]
+        fundament = self.fundamenty[karta.kolor]
+        if (not fundament and karta.ranga == 1) or  (fundament and karta.ranga == fundament[-1].ranga + 1):
+            self.odrzucone.pop()
+            fundament.append(karta)
+            return True
+        return False
+    
+    def przenies_z_kolumny_do_fundamentu(self, zrodlowa: int):
+        """Przenieś jedną kartę z wybranej kolumny, jeśli to możliwe"""
+        kolumna = self.kolumny(zrodlowa)
+        if not kolumna:
+            return False
+        
+        karta = kolumna[-1]
+        fundament = self.fundamenty[karta.kolor]
+
+        if (not fundament and karta.ranga == 1) or (fundament and karta.ranga == fundament[-1].ranga + 1):
+            fundament.append(karta)
+            kolumna.pop()
+            self._odkryj_ostania(zrodlowa)
+            return True
         return False
 
     def przenies_miedzy_kolumnami(self, zrodlowa: int, docelowa: int, ile_kart = 1):
@@ -78,7 +107,8 @@ class Gra:
         if karty_przenoszone[0].widoczna == False:
             return False #Zapobiegamy przeniesieniu zakrytych kart
 
-        if (not k_docelowa and karty_przenoszone[0].ranga == 13) or (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1)
+        if (not k_docelowa and karty_przenoszone[0].ranga == 13) or \
+            (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1)
             k_docelowa.extend(karty_przenoszone)
             k_zrodlowa = k_zrodlowa[:-ile_kart] 
             self._odkryj_ostatnia(zrodlowa)
