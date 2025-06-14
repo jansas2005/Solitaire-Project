@@ -44,7 +44,8 @@ class Gra:
                 self.kolumny[i].append(karta) #Wrzucam kartę do kolumny
         self.stos = talia #Reszta kart trafia do stosu
 
-    def dobierz_ze_stosu(self):
+    def dobierz_ze_stosu(self): 
+        """Wyciąganie karty ze stosu zakrytych i odlożenie jej na stos odkrytych"""
         if not self.stos and self.odrzucone:
             self.stos = self.odrzucone[::-1]
             for karta in self.stos:
@@ -55,30 +56,18 @@ class Gra:
             karta.widoczna = True
             self.waste.append(karta)
     
-    def przenies_miedzy_kolumnami(self, zrodlowa: int, docelowa: int, ile_kart = 1):
-        k_zrodlowa = self.kolumny[zrodlowa]
-        k_docelowa = self.kolumny[docelowa]
-        karty_przenoszone = k_zrodlowa[-ile_kart:] #Wybieram ostanie ile_kart elementów
-        if karty_przenoszone[0].widoczna == False:
-            return False #Zapobiegamy przeniesieniu zakrytych kart
-        wierzchnia_karta = k_docelowa[-1] if k_docelowa else None #None, jeśli kolumna jest pusta
-
-        if not k_docelowa:
-            if karty_przenoszone[0].ranga == 13:
-                k_docelowa.extend(karty_przenoszone)
-                k_zrodlowa = k_zrodlowa[:-ile_kart] 
-                self._odkryj_ostatnia(zrodlowa)
-                return True
+    
+    def przenies_ze_stosu_do_kolumny(self, docelowa: int):
+        """Przenieś odkrytą kartę ze stosu do wybranej kolumny"""
+        if not self.odrzucone: 
             return False
-        
-        if wierzchnia_karta.widoczna and karty_przenoszone[0].kolor_podstawowy() != wierzchnia_karta.kolor_podstawowy() and karty_przenoszone[0].ranga == wierzchnia_karta.ranga - 1:
-            k_docelowa.extend(karty_przenoszone)
-            k_zrodlowa = k_zrodlowa[:-ile_kart] 
-            self._odkryj_ostatnia(zrodlowa)
-            return True
-        return False
+        karta = self.odrzucone[-1]
+        k_docelowa = self.kolumny[docelowa]
 
-    def _odkryj_ostania(self, indeks: int):
-        kolumna = self.kolumny[indeks]
-        if kolumna and kolumna[-1].widoczna:
-            kolumna[-1].widoczna = True
+        if (not k_docelowa and karta.ranga == 13) or (k_docelowa and karta.kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karta.ranga == k_docelowa[-1].ranga - 1): #Pusta kolumna i król
+            self.odrzucone.pop()
+            k_docelowa.append(karta)
+            return True
+        
+        return False
+    
