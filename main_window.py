@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QAction
+from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QAction, QMessageBox
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 
@@ -88,17 +88,34 @@ class MainWindow(QMainWindow):
     def setup_menu(self):
         menu_bar = self.menuBar()
 
-        # Menu "Plik"
+        # Menu "Opcje"
         file_menu = menu_bar.addMenu("⚙️ Opcje")
 
         new_game_action = QAction("🎲 Nowa gra", self)
         exit_action = QAction("❌ Wyjście", self)
+        help_action = QAction("❓ Pomoc", self)
+        help_action.triggered.connect(self.show_help)
 
         new_game_action.triggered.connect(self.start_new_game)
         exit_action.triggered.connect(self.close)
 
         file_menu.addAction(new_game_action)
         file_menu.addAction(exit_action)
+        file_menu.addAction(help_action)
+
+    def show_help(self):
+        help_text = (
+            "📜 Zasady Pasjansa Klondike:\n\n"
+            "• Celem gry jest przeniesienie wszystkich kart na 4 stosy,\n"
+            "  każdy rosnąco od Asa do Króla, w jednym kolorze.\n\n"
+            "• Można przenosić karty między 7 kolumnami w porządku malejącym\n"
+            "  i naprzemiennych kolorach (np. czarna 7 na czerwoną 8).\n\n"
+            "• Tylko Król może zostać przeniesiony na puste miejsce kolumny.\n"
+            "• Z talii możesz dobierać karty na stos odrzuconych.\n"
+            "• Grę wygrywasz, jeśli uda ci się ułożyć wszystkie 52 karty na 4 stosach.\n"
+        )
+
+        QMessageBox.information(self, "Pomoc - Zasady gry", help_text)
 
     def start_new_game(self):
         print("TODO: Połączyć z logiką gry (Marcel)")
