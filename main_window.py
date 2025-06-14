@@ -15,6 +15,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.game = GameLogic()
 
+        # Kolejność symboli odpowiada kolejności kolorów w self.game.foundation_suits
+        self.foundation_symbols = ['♠', '♥', '♦', '♣'] 
+
         self.setWindowTitle("Pasjans Klondike")
         self.setGeometry(100, 100, 1200, 800)
         
@@ -45,7 +48,7 @@ class MainWindow(QMainWindow):
 
         self.foundations_placeholders = []
         for i in range(4):
-            f = DropPlaceholder()
+            f = DropPlaceholder(label="") 
             f.setObjectName(f"foundation_{i}")
             top_row.addWidget(f)
             self.foundations_placeholders.append(f)
@@ -124,26 +127,47 @@ class MainWindow(QMainWindow):
 
         # FOUNDATIONS
         for i, pile in enumerate(self.game.foundations):
-            if pile:
+            placeholder = self.foundations_placeholders[i]
+            
+            if not pile:
+                symbol = self.foundation_symbols[i]
+                placeholder.label.setText(symbol)
+                # ZMIANA: Styl etykiety z symbolem. Usunęliśmy 'border: none', aby ramka widgetu była widoczna.
+                placeholder.label.setStyleSheet("""
+                    background: transparent;
+                    color: rgba(0, 0, 0, 0.35);
+                    font-size: 70px;
+                    font-family: 'Times New Roman', serif;
+                """)
+                placeholder.label.show()
+                placeholder.show() # Upewniamy się, że cały placeholder jest widoczny
+            else:
+                placeholder.label.hide()
                 top_card = pile[-1]
                 card_data = (top_card['suit'], top_card['rank'])
-                CardWidget(card_data, parent=self.foundations_placeholders[i], source=('foundation', i)).show()
+                CardWidget(card_data, parent=placeholder, source=('foundation', i)).show()
 
         # TABLEAU
         for i, pile in enumerate(self.game.tableau):
+            column_widget = self.tableau_columns[i]
+            if not pile:
+                column_widget.placeholder.show()
+            else:
+                column_widget.placeholder.hide()
+
             for j, card_info in enumerate(pile):
                 card_data = (card_info['suit'], card_info['rank'])
                 is_draggable = card_info['face_up']
                 display_data = card_data if is_draggable else ('tył_karty', '')
                 source_id = ('tableau', i, j)
                 
-                widget = CardWidget(display_data, parent=self.tableau_columns[i], source=source_id, draggable=is_draggable)
+                widget = CardWidget(display_data, parent=column_widget, source=source_id, draggable=is_draggable)
                 widget.card_double_clicked.connect(self.handle_card_double_click)
                 
                 y_offset = 10 + j * 30
                 widget.move(10, y_offset)
                 widget.show()
-                self.tableau_columns[i].cards.append(widget)
+                column_widget.cards.append(widget)
         
         QApplication.processEvents()
 
@@ -154,11 +178,10 @@ class MainWindow(QMainWindow):
     def handle_card_double_click(self, source_info):
         moved = False
         card_to_move = None
-        source_type, source_idx, *rest = source_info # Działa dla krotek o dł. 2 i 3
+        source_type, source_idx, *rest = source_info
 
         if source_type == 'tableau':
             card_idx = rest[0]
-            # Tylko ostatnia karta z kolumny może być przeniesiona przez double-click
             if card_idx == len(self.game.tableau[source_idx]) - 1:
                 card_to_move = self.game.tableau[source_idx][card_idx]
         elif source_type == 'waste':
@@ -166,7 +189,7 @@ class MainWindow(QMainWindow):
                 card_to_move = self.game.waste[-1]
         
         if card_to_move:
-            for i in range(4): # Sprawdź każdy fundament
+            for i in range(4):
                 if self.game.is_valid_for_foundation(card_to_move, i):
                     self.game.perform_move([card_to_move], (source_type, source_idx), ('foundation', i))
                     moved = True
@@ -209,4 +232,18 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Cofnij", "Cofanie ruchów jeszcze niezaimplementowane.")
     
     def show_win_message(self):
-        QMessageBox.information(self, "Gratulacje!", "🎉 Wygrałeś! 🎉")
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Gratulacje!")
+        msg_box.setText("🎉 Wygrałeś! 🎉")
+        msg_box.setInformativeText("Czy chcesz rozpocząć nową grę?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.Yes)
+        
+        if msg_box.exec_() == QMessageBox.Yes:
+            self.start_new_game()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())

@@ -55,7 +55,6 @@ class CardWidget(QLabel):
         if card_type == 'tył_karty':
             texture_path = "resources/cards/tył_karty.png"
         else:
-            # Nazwy kolorów w logice są już zgodne z plikami, nie trzeba mapować
             texture_path = f"resources/cards/{card_type}_{card_value}.png"
         
         if os.path.exists(texture_path):
@@ -63,10 +62,6 @@ class CardWidget(QLabel):
             if not pixmap.isNull():
                 self.setPixmap(pixmap.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 return
-            else:
-                print(f"⚠️ Nie udało się załadować pliku (jest uszkodzony?): {texture_path}")
-        else:
-            print(f"❌ Brak pliku: {texture_path}")
         
         self.set_fallback_style(card_type, card_value)
 
@@ -118,6 +113,16 @@ class CardColumnWidget(QWidget):
         self.setMinimumSize(120, 600)
         self.cards = []
         self.setStyleSheet("background-color: transparent;")
+        
+        # Dodajemy placeholder, który będzie widoczny, gdy kolumna jest pusta
+        self.placeholder = QLabel(self)
+        self.placeholder.setGeometry(10, 10, 100, 145)
+        self.placeholder.setStyleSheet("""
+            background-color: rgba(0, 0, 0, 0.15); 
+            border: 2px dashed rgba(255, 255, 255, 0.2); 
+            border-radius: 5px;
+        """)
+        self.placeholder.hide() # Domyślnie ukryty
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText(): event.acceptProposedAction()
