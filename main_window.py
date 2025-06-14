@@ -21,31 +21,31 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         central_widget = QWidget()
         central_widget.setStyleSheet("""
-            background-color: #0b6623;
-            background-image:
-                radial-gradient(rgba(255,255,255,0.05) 10%, transparent 11%),
-                radial-gradient(rgba(0,0,0,0.1) 10%, transparent 11%);
-            background-position: 0 0, 5px 5px;
-            background-repeat: repeat;
+            QWidget {
+                background-color: #0b6623;
+                background-image:
+                    radial-gradient(rgba(255,255,255,0.05) 10%, transparent 11%),
+                    radial-gradient(rgba(0,0,0,0.1) 10%, transparent 11%);
+                background-position: 0 0, 5px 5px;
+                background-repeat: repeat;
+            }
+            QPushButton {
+                background-color: white;
+                border: 1px solid #888;
+                padding: 5px 10px;
+                border-radius: 4px;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
         """)
         self.setCentralWidget(central_widget)
-
-        '''
-        #  Dodanie tła z folderu resources
-        central_widget.setStyleSheet("""
-            QWidget {
-                background-image: url('resources/background.png');
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: cover;
-            }
-        """)'''
-        
 
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
-        #  Górny rząd: Stock, Waste, Foundations
+        # Górny rząd: Stock, Waste, Foundations
         top_row = QHBoxLayout()
 
         self.stock = DropPlaceholder("STOCK")
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
             top_row.addWidget(f)
             self.foundations.append(f)
 
-        #  Tableau: 7 kolumn
+        # Tableau: 7 kolumn
         tableau_row = QHBoxLayout()
         self.tableau_columns = []
         for i in range(7):
@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
             tableau_row.addWidget(col)
             self.tableau_columns.append(col)
 
-        #  Przyciski
+        # Przyciski
         button_row = QHBoxLayout()
         self.new_game_btn = QPushButton("🎲 Nowa gra")
         self.undo_btn = QPushButton("⏪ Cofnij")
@@ -125,7 +125,6 @@ class MainWindow(QMainWindow):
         self.clear_tableau()
         self.deal_initial_cards()
 
-
     def draw_card(self):
         if self.card_stack:
             card_data = self.card_stack.pop(0)
@@ -151,7 +150,6 @@ class MainWindow(QMainWindow):
                 card_data = self.card_stack.pop(0)
                 face_up = (j == i)  # tylko ostatnia karta w kolumnie ma być odkryta
 
-                # Jeśli karta ma być zakryta, użyj specjalnego typu
                 if face_up:
                     card = CardWidget(card_data, parent=self.tableau_columns[i])
                 else:
