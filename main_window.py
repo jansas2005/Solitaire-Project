@@ -241,9 +241,3 @@ class MainWindow(QMainWindow):
         
         if msg_box.exec_() == QMessageBox.Yes:
             self.start_new_game()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
