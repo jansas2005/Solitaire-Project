@@ -47,7 +47,7 @@ class Gra:
     def dobierz_ze_stosu(self): 
         """Wyciąganie karty ze stosu zakrytych i odlożenie jej na stos odkrytych"""
         if not self.stos and self.odrzucone:
-            self.stos = self.odrzucone[::-1]
+            self.stos = self.odrzucone
             for karta in self.stos:
                 karta.widoczna = False
             self.odrzucone = [] ###
