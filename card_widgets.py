@@ -1,17 +1,22 @@
+import os
 from PyQt5.QtWidgets import QLabel, QWidget
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QPixmap, QDrag
 
 
 class CardWidget(QLabel):
-    def __init__(self, card_data, pixmap, parent=None):
+    def __init__(self, card_data, pixmap=None, parent=None):
         super().__init__(parent)
         self.card_data = card_data
-        self.setPixmap(pixmap)
-        self.setScaledContents(True)
         self.setFixedSize(100, 145)
+        self.setScaledContents(True)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setStyleSheet("border: 1px solid black;")
+        self.setStyleSheet("border-radius: 5px; border: 1px solid black;")
+
+        if pixmap:
+            self.setPixmap(pixmap.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.load_texture()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -19,20 +24,76 @@ class CardWidget(QLabel):
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.LeftButton) and \
-            (event.pos() - self.drag_start_position).manhattanLength() > 10:
+           (event.pos() - self.drag_start_position).manhattanLength() > 10:
 
-            drag = QDrag(self)
-            mime_data = QMimeData()
-            mime_data.setText(str(self.card_data))
-            drag.setMimeData(mime_data)
+            pix = self.pixmap()
+            if pix and not pix.isNull():
+                drag = QDrag(self)
+                mime_data = QMimeData()
+                mime_data.setText(str(self.card_data))
+                drag.setMimeData(mime_data)
 
-            drag.setPixmap(self.pixmap())
-            drag.setHotSpot(event.pos())
+                drag.setPixmap(pix.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                drag.setHotSpot(event.pos())
 
-            result = drag.exec_(Qt.MoveAction)
+                result = drag.exec_(Qt.MoveAction)
+                if result == Qt.MoveAction:
+                    self.close()
+            else:
+                print("⚠️ Brak pixmapy, nie można przeciągnąć.")
 
-            if result == Qt.MoveAction:
-                self.close()
+    def load_texture(self):
+        card_type, card_value = self.card_data
+
+        # mapowanie wartości
+        value_map = {
+            'A': 'A', '2': '2', '3': '3', '4': '4',
+            '5': '5', '6': '6', '7': '7', '8': '8',
+            '9': '9', '10': '10', 'J': 'J', 'Q': 'Q', 'K': 'K'
+        }
+
+        if card_type not in ['diament', 'serce', 'wino', 'żołędź', 'tył_karty']:
+            raise ValueError(f"Nieznany typ karty: {card_type}")
+
+        if card_value not in value_map and card_type != 'tył_karty':
+            raise ValueError(f"Nieznana wartość karty: {card_value}")
+
+        # wybór pliku
+        if card_type == 'tył_karty':
+            texture_path = "resources/cards/tył_karty.png"
+        else:
+            texture_path = f"resources/cards/{card_type}_{value_map[card_value]}.png"
+
+        if os.path.exists(texture_path):
+            pixmap = QPixmap(texture_path)
+            if not pixmap.isNull():
+                self.setPixmap(pixmap.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                return
+            else:
+                print(f"⚠️ Nie udało się załadować pliku: {texture_path}")
+        else:
+            print(f"❌ Brak pliku: {texture_path}")
+
+        self.set_fallback_style(card_type, card_value)
+
+    def set_fallback_style(self, card_type, card_value):
+        colors = {
+            'diament': 'red',
+            'serce': 'red',
+            'wino': 'black',
+            'żołędź': 'black'
+        }
+
+        self.setStyleSheet(f"""
+            background-color: white;
+            color: {colors.get(card_type, 'gray')};
+            border: 1px solid black;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+        """)
+        self.setText(f"{card_value}\n{card_type}")
+        self.setAlignment(Qt.AlignCenter)
 
 
 class DropPlaceholder(QWidget):
@@ -64,7 +125,7 @@ class DropPlaceholder(QWidget):
         card_info = event.mimeData().text()
         print(f"Upuszczono kartę do: {self.objectName()} ->", card_info)
 
-        new_card = CardWidget(eval(card_info), QPixmap("cards/AS.png"), parent=self)
+        new_card = CardWidget(eval(card_info), parent=self)
         new_card.move(0, 0)
         new_card.show()
         event.acceptProposedAction()
@@ -96,8 +157,7 @@ class CardColumnWidget(QWidget):
         card_info = event.mimeData().text()
         print("Upuszczono kartę do kolumny:", card_info)
 
-        new_card = CardWidget(eval(card_info), QPixmap("cards/AS.png"))
-        new_card.setParent(self)
+        new_card = CardWidget(eval(card_info), parent=self)
 
         if not self.cards:
             new_card.move(10, 10)

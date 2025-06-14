@@ -1,6 +1,11 @@
 import random
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QAction, QMessageBox
+from PyQt5.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QAction, QMessageBox
+)
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
+
 from card_widgets import CardWidget, DropPlaceholder, CardColumnWidget
 
 
@@ -10,8 +15,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Pasjans Klondike")
         self.setGeometry(100, 100, 1200, 800)
         self.setup_ui()
-        self.setup_menu()  # <-- Dodane tu
-        self.statusBar().showMessage("🟢 Gotowe do gry")
+        self.init_menu()
+        self.init_game()
 
     def setup_ui(self):
         central_widget = QWidget()
@@ -65,49 +70,38 @@ class MainWindow(QMainWindow):
         button_row.addStretch()
         button_row.addWidget(self.exit_btn)
 
-        # Składamy wszystko razem
         main_layout.addLayout(top_row)
         main_layout.addSpacing(20)
         main_layout.addLayout(tableau_row)
         main_layout.addStretch()
         main_layout.addLayout(button_row)
 
-        # 🔁 Talia kart
-        suits = ['spades', 'hearts', 'diamonds', 'clubs']
+    def init_menu(self):
+        menu = self.menuBar()
+        help_menu = menu.addMenu("⚙️ Ustawienia")
+
+        help_action = QAction("❓ Pomoc", self)
+        help_action.triggered.connect(self.show_help)
+        help_menu.addAction(help_action)
+
+    def show_help(self):
+        QMessageBox.information(self, " Ustawienia",
+            "🎯 Cel gry:\n"
+            "Ułóż wszystkie karty w czterech stosach (kolorami i rosnąco od Asa do Króla).\n\n"
+            "🃏 Zasady:\n"
+            "- Odkładaj naprzemienne kolory w kolumnach malejąco.\n"
+            "- Można przenosić ciągi kart lub pojedyncze karty.\n"
+            "- Kliknięcie na zakrytą kartę odkrywa ją.\n"
+            "- Kliknięcie na STOCK dobiera kartę do WASTE.\n\n"
+            "Powodzenia!"
+        )
+
+    def init_game(self):
+        suits = ['żołędź', 'serce', 'diament', 'wino']
         ranks = ['A'] + [str(n) for n in range(2, 11)] + ['J', 'Q', 'K']
         deck = [(suit, rank) for suit in suits for rank in ranks]
         random.shuffle(deck)
         self.card_stack = deck
-
-    def setup_menu(self):
-        menu_bar = self.menuBar()
-        options_menu = menu_bar.addMenu("⚙️ Opcje")
-
-        new_game_action = QAction("🎲 Nowa gra", self)
-        exit_action = QAction("❌ Wyjście", self)
-        help_action = QAction("❓ Pomoc", self)
-
-        new_game_action.triggered.connect(self.start_new_game)
-        exit_action.triggered.connect(self.close)
-        help_action.triggered.connect(self.show_help)
-
-        options_menu.addAction(new_game_action)
-        options_menu.addAction(exit_action)
-        options_menu.addSeparator()
-        options_menu.addAction(help_action)
-
-    def show_help(self):
-        help_text = (
-            "📜 Zasady Pasjansa Klondike:\n\n"
-            "• Celem gry jest przeniesienie wszystkich kart na 4 stosy,\n"
-            "  każdy rosnąco od Asa do Króla, w jednym kolorze.\n\n"
-            "• Można przenosić karty między 7 kolumnami w porządku malejącym\n"
-            "  i naprzemiennych kolorach (np. czarna 7 na czerwoną 8).\n\n"
-            "• Tylko Król może zostać przeniesiony na puste miejsce kolumny.\n"
-            "• Z talii możesz dobierać karty na stos odrzuconych.\n"
-            "• Grę wygrywasz, jeśli uda ci się ułożyć wszystkie 52 karty na 4 stosach.\n"
-        )
-        QMessageBox.information(self, "Pomoc - Zasady gry", help_text)
 
     def draw_card(self):
         if self.card_stack:
@@ -117,12 +111,13 @@ class MainWindow(QMainWindow):
                 if isinstance(child, CardWidget):
                     child.close()
 
-            new_card = CardWidget(card_data, QPixmap("cards/AS.png"), parent=self.waste)
+            new_card = CardWidget(card_data, parent=self.waste)
             new_card.move(0, 0)
             new_card.show()
 
     def start_new_game(self):
-        QMessageBox.information(self, "Nowa gra", "Rozpoczęto nową grę (logika jeszcze niezaimplementowana).")
+        self.init_game()
+        QMessageBox.information(self, "Nowa gra", "Rozpoczęto nową grę.")
 
     def undo_move(self):
         QMessageBox.information(self, "Cofnij", "Cofanie ruchów jeszcze niezaimplementowane.")
