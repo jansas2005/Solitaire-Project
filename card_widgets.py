@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (QLabel, QWidget)
+from PyQt5.QtWidgets import QLabel, QWidget
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QPixmap, QDrag
 
