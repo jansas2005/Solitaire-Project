@@ -1,22 +1,22 @@
-import sys
-import random
-from PyQt5.QtWidgets import (
-    QApplication, QLabel, QWidget, QVBoxLayout,
-    QMainWindow, QHBoxLayout, QSpacerItem, QSizePolicy
-)
+import os
+from PyQt5.QtWidgets import QLabel, QWidget
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QPixmap, QDrag
 
 
 class CardWidget(QLabel):
-    def __init__(self, card_data, pixmap, parent=None):
+    def __init__(self, card_data, pixmap=None, parent=None):
         super().__init__(parent)
         self.card_data = card_data
-        self.setPixmap(pixmap)
-        self.setScaledContents(True)
         self.setFixedSize(100, 145)
+        self.setScaledContents(True)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setStyleSheet("border: 1px solid black;")
+        self.setStyleSheet("border-radius: 5px; border: 1px solid black;")
+
+        if pixmap:
+            self.setPixmap(pixmap.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.load_texture()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -24,22 +24,76 @@ class CardWidget(QLabel):
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.LeftButton) and \
-            (event.pos() - self.drag_start_position).manhattanLength() > 10:
+           (event.pos() - self.drag_start_position).manhattanLength() > 10:
 
-            drag = QDrag(self)
-            mime_data = QMimeData()
-            mime_data.setText(str(self.card_data))
-            drag.setMimeData(mime_data)
+            pix = self.pixmap()
+            if pix and not pix.isNull():
+                drag = QDrag(self)
+                mime_data = QMimeData()
+                mime_data.setText(str(self.card_data))
+                drag.setMimeData(mime_data)
 
-            drag.setPixmap(self.pixmap())
-            drag.setHotSpot(event.pos())
+                drag.setPixmap(pix.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                drag.setHotSpot(event.pos())
 
-            result = drag.exec_(Qt.MoveAction)
+                result = drag.exec_(Qt.MoveAction)
+                if result == Qt.MoveAction:
+                    self.close()
+            else:
+                print("⚠️ Brak pixmapy, nie można przeciągnąć.")
 
-            if result == Qt.MoveAction:
-                self.close()
+    def load_texture(self):
+        card_type, card_value = self.card_data
 
+        # mapowanie wartości
+        value_map = {
+            'A': 'A', '2': '2', '3': '3', '4': '4',
+            '5': '5', '6': '6', '7': '7', '8': '8',
+            '9': '9', '10': '10', 'J': 'J', 'Q': 'Q', 'K': 'K'
+        }
 
+        if card_type not in ['diament', 'serce', 'wino', 'żołędź', 'tył_karty']:
+            raise ValueError(f"Nieznany typ karty: {card_type}")
+
+        if card_value not in value_map and card_type != 'tył_karty':
+            raise ValueError(f"Nieznana wartość karty: {card_value}")
+
+        # wybór pliku
+        if card_type == 'tył_karty':
+            texture_path = "resources/cards/tył_karty.png"
+        else:
+            texture_path = f"resources/cards/{card_type}_{value_map[card_value]}.png"
+
+        if os.path.exists(texture_path):
+            pixmap = QPixmap(texture_path)
+            if not pixmap.isNull():
+                self.setPixmap(pixmap.scaled(100, 145, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                return
+            else:
+                print(f"⚠️ Nie udało się załadować pliku: {texture_path}")
+        else:
+            print(f"❌ Brak pliku: {texture_path}")
+
+        self.set_fallback_style(card_type, card_value)
+
+    def set_fallback_style(self, card_type, card_value):
+        colors = {
+            'diament': 'red',
+            'serce': 'red',
+            'wino': 'black',
+            'żołędź': 'black'
+        }
+
+        self.setStyleSheet(f"""
+            background-color: white;
+            color: {colors.get(card_type, 'gray')};
+            border: 1px solid black;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+        """)
+        self.setText(f"{card_value}\n{card_type}")
+        self.setAlignment(Qt.AlignCenter)
 
 
 class DropPlaceholder(QWidget):
@@ -71,7 +125,7 @@ class DropPlaceholder(QWidget):
         card_info = event.mimeData().text()
         print(f"Upuszczono kartę do: {self.objectName()} ->", card_info)
 
-        new_card = CardWidget(eval(card_info), QPixmap("cards/AS.png"), parent=self)
+        new_card = CardWidget(eval(card_info), parent=self)
         new_card.move(0, 0)
         new_card.show()
         event.acceptProposedAction()
@@ -103,8 +157,7 @@ class CardColumnWidget(QWidget):
         card_info = event.mimeData().text()
         print("Upuszczono kartę do kolumny:", card_info)
 
-        new_card = CardWidget(eval(card_info), QPixmap("cards/AS.png"))
-        new_card.setParent(self)
+        new_card = CardWidget(eval(card_info), parent=self)
 
         if not self.cards:
             new_card.move(10, 10)
@@ -115,84 +168,3 @@ class CardColumnWidget(QWidget):
         new_card.show()
         self.cards.append(new_card)
         event.acceptProposedAction()
-
-
-
-def main():
-    app = QApplication(sys.argv)
-
-    window = QMainWindow()
-    window.setWindowTitle("Pasjans - Widok startowy")
-    window.setGeometry(100, 100, 1200, 800)
-
-    central = QWidget()
-    central.setStyleSheet("background-color: green;")
-    window.setCentralWidget(central)
-
-    main_layout = QVBoxLayout(central)
-
-    # Górny rząd
-    top_row = QHBoxLayout()
-    top_row.setSpacing(30)
-    top_row.setContentsMargins(20, 20, 20, 20)
-
-    # Tworzenie pełnej talii 52 kart
-    suits = ['spades', 'hearts', 'diamonds', 'clubs']
-    ranks = ['A'] + [str(n) for n in range(2, 11)] + ['J', 'Q', 'K']
-
-    deck = [(suit, rank) for suit in suits for rank in ranks]
-    random.shuffle(deck)
-
-    card_stack = deck
-
-
-    stock = DropPlaceholder("STOCK")
-    stock.setObjectName("stock")
-
-    waste = DropPlaceholder("WASTE")
-    waste.setObjectName("waste")
-
-    top_row.addWidget(stock)
-    top_row.addWidget(waste)
-    top_row.addSpacerItem(QSpacerItem(100, 20, QSizePolicy.Expanding))
-
-    for i in range(4):
-        f = DropPlaceholder(f"F{i+1}")
-        f.setObjectName(f"foundation_{i+1}")
-        top_row.addWidget(f)
-
-    main_layout.addLayout(top_row)
-
-    # Dolny rząd: 7 kolumn
-    columns_row = QHBoxLayout()
-    columns_row.setSpacing(20)
-    columns_row.setContentsMargins(20, 10, 20, 20)
-
-    for i in range(7):
-        col = CardColumnWidget()
-        columns_row.addWidget(col)
-
-    main_layout.addLayout(columns_row)
-
-    #  Obsługa kliknięcia w STOCK – pokazuje kolejną kartę w WASTE
-    def show_next_card():
-        if card_stack:
-            card_data = card_stack.pop(0)
-
-            # Usuń poprzednią kartę w WASTE
-            for child in waste.children():
-                if isinstance(child, CardWidget):
-                    child.close()
-
-            new_card = CardWidget(card_data, QPixmap("cards/AS.png"), parent=waste)
-            new_card.move(0, 0)
-            new_card.show()
-
-    stock.clicked.connect(show_next_card)
-
-    window.show()
-    sys.exit(app.exec_())
-
-
-if __name__ == "__main__":
-    main()
