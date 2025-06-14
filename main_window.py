@@ -1,9 +1,9 @@
 import random
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QAction, QMessageBox
+    QPushButton, QAction, QMessageBox, QLabel
 )
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
 from card_widgets import CardWidget, DropPlaceholder, CardColumnWidget
@@ -60,9 +60,19 @@ class MainWindow(QMainWindow):
         top_row.addStretch()
 
         self.foundations = []
+        suit_symbols = ['♥', '♣', '♦', '♠']
         for i in range(4):
-            f = DropPlaceholder(f"F{i+1}")
+            f = DropPlaceholder("")  # na razie pusty
             f.setObjectName(f"foundation_{i+1}")
+
+            # Dodajemy duży label z symbolem
+            label = QLabel(suit_symbols[i], f)
+            label.setAlignment(Qt.AlignCenter)
+            label.setFont(QFont("Arial", 40, QFont.Bold))
+            label.setGeometry(0, 0, f.width(), f.height())
+            label.setStyleSheet("color: white;")
+            label.show()
+
             top_row.addWidget(f)
             self.foundations.append(f)
 
@@ -143,7 +153,7 @@ class MainWindow(QMainWindow):
 
     def undo_move(self):
         QMessageBox.information(self, "Cofnij", "Cofanie ruchów jeszcze niezaimplementowane.")
-   
+
     def deal_initial_cards(self):
         for i in range(7):
             for j in range(i + 1):
@@ -160,7 +170,7 @@ class MainWindow(QMainWindow):
                 card.move(10, y_offset)
                 card.show()
                 self.tableau_columns[i].cards.append(card)
-        
+
     def clear_tableau(self):
         for column in self.tableau_columns:
             for card in column.cards:
