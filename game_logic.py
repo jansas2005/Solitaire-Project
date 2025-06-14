@@ -1,127 +1,137 @@
+# game_logic.py
 import random
 
-class Karta:
-    def __init__(self, kolor: str, ranga: int, widoczna: bool = False):
-        kolory = ['pik', 'kier','karo','trefl']
-        if kolor not in kolory:
-            raise ValueError("Nieprawidlowy kolor karty")
-        if not (1 <= ranga <= 13):
-            raise ValueError("Nieprawidlowa wartość karty (dozwolone od 1 do 13)")
-        
-        self.kolor = kolor #pik, kier, karo, trefl
-        self.ranga = ranga  #1-13 (As = 1, Walet = 11, Dama = 12, Król = 13)
-        self.widoczna = widoczna
-
-    def __repr__(self):
-        tl = {1:'A', 11:'J', 12:'Q', 13:'K'}
-        if self.ranga in tl.keys():
-            wartosc = tl[self.ranga]
-        else:
-            wartosc = self.ranga
-        return f"{wartosc} {self.kolor} {'widoczna' if self.widoczna else 'niewidoczna'}"
-    
-    def kolor_podstawowy(self):
-        return 'czerwony' if self.kolor in ['karo', 'kier'] else 'czarny'
-    
-class Gra:
+class GameLogic:
+    """
+    Zarządza stanem i logiką gry. Używa nazw kolorów zgodnych z plikami graficznymi.
+    """
     def __init__(self):
-        self.stos = [] #Stock
-        self.odrzucone = [] #Waste
-        self.kolumny = [[] for i in range(7)]
-        self.fundamenty = {
-            'pik': [], 'kier': [], 'karo': [], 'trefl':[]
+        # Używamy nazw, których oczekują pliki graficzne w card_widgets
+        self.suits = ['wino', 'serce', 'diament', 'żołędź']
+        self.ranks = ['A'] + [str(n) for n in range(2, 11)] + ['J', 'Q', 'K']
+        self.rank_values = {rank: i for i, rank in enumerate(self.ranks, 1)}
+        self.card_colors = {
+            'wino': 'black', 'żołędź': 'black',
+            'serce': 'red', 'diament': 'red'
         }
-        self._zacznij_gre()
-    
-    def _zacznij_gre(self):
-        kolory = ['pik', 'kier','karo','trefl']
-        talia = [Karta(kolor, ranga) for kolor in kolory for ranga in range(1,14)]
-        random.shuffle(talia)
+        self.new_game()
+
+    def new_game(self):
+        """ Inicjalizuje i rozpoczyna nową grę. """
+        full_deck = [{'suit': s, 'rank': r, 'face_up': False} for s in self.suits for r in self.ranks]
+        random.shuffle(full_deck)
+
+        self.stock = full_deck
+        self.waste = []
+        self.foundations = [[] for _ in range(4)]
+        self.tableau = [[] for _ in range(7)]
+
         for i in range(7):
-            for j in range(i+1):
-                karta = talia.pop(0) #Wyciągam kartę z talii
-                karta.widoczna = True if j==i else False #Karta widoczna tylko jeśli będzie z przodu
-                self.kolumny[i].append(karta) #Wrzucam kartę do kolumny
-        self.stos = talia #Reszta kart trafia do stosu
+            for j in range(i + 1):
+                card = self.stock.pop()
+                if j == i:
+                    card['face_up'] = True
+                self.tableau[i].append(card)
 
-    def dobierz_ze_stosu(self): 
-        """Wyciąganie karty ze stosu zakrytych i odlożenie jej na stos odkrytych"""
-        if not self.stos and self.odrzucone:
-            self.stos = self.odrzucone
-            for karta in self.stos:
-                karta.widoczna = False
-            self.odrzucone = [] ###
-        elif self.stos:
-            karta = self.stos.pop(0)
-            karta.widoczna = True
-            self.odrzucone.append(karta)
-    
-    
-    def przenies_ze_stosu_do_kolumny(self, docelowa: int):
-        """Przenieś odkrytą kartę ze stosu do wybranej kolumny"""
-        if not self.odrzucone: 
-            return False
-        karta = self.odrzucone[-1]
-        k_docelowa = self.kolumny[docelowa]
-
-        if (not k_docelowa and karta.ranga == 13) or \
-            (k_docelowa and karta.kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karta.ranga == k_docelowa[-1].ranga - 1): #Pusta kolumna i król
-            self.odrzucone.pop()
-            k_docelowa.append(karta)
+    def draw_from_stock(self):
+        """ Dobiera kartę ze stocku do waste lub odwraca waste. """
+        if not self.stock:
+            self.stock = self.waste[::-1]
+            for card in self.stock:
+                card['face_up'] = False
+            self.waste = []
             return True
-        
-        return False
-    
-    def przenies_ze_stosu_do_fundamentu(self):
-        """Przenieś odkrytą kartę ze stosu do fundamentu"""
-        if not self.odrzucone:
-            return False
-        karta = self.odrzucone[-1]
-        fundament = self.fundamenty[karta.kolor]
-        if (not fundament and karta.ranga == 1) or  (fundament and karta.ranga == fundament[-1].ranga + 1):
-            self.odrzucone.pop()
-            fundament.append(karta)
-            return True
-        return False
-    
-    def przenies_z_kolumny_do_fundamentu(self, zrodlowa: int):
-        """Przenieś jedną kartę z wybranej kolumny, jeśli to możliwe"""
-        kolumna = self.kolumny[zrodlowa]
-        if not kolumna:
-            return False
-        
-        karta = kolumna[-1]
-        fundament = self.fundamenty[karta.kolor]
 
-        if (not fundament and karta.ranga == 1) or (fundament and karta.ranga == fundament[-1].ranga + 1):
-            fundament.append(karta)
-            kolumna.pop()
-            self._odkryj_ostatnia(zrodlowa)
+        card = self.stock.pop()
+        card['face_up'] = True
+        self.waste.append(card)
+        return True
+
+    def attempt_move(self, card_stack, source, destination):
+        """ Próbuje przenieść stos kart. Zwraca True jeśli się udało. """
+        source_type, source_idx = source
+        dest_type, dest_idx = destination
+
+        is_valid = False
+        if dest_type == 'foundation':
+            if len(card_stack) == 1: # Na fundament można przenosić tylko pojedyncze karty
+                is_valid = self.is_valid_for_foundation(card_stack[0], dest_idx)
+        elif dest_type == 'tableau':
+            is_valid = self.is_valid_for_tableau(card_stack[0], dest_idx)
+
+        if is_valid:
+            self.perform_move(card_stack, source, destination)
             return True
         return False
 
-    def przenies_miedzy_kolumnami(self, zrodlowa: int, docelowa: int, ile_kart = 1):
-        k_zrodlowa = self.kolumny[zrodlowa]
-        k_docelowa = self.kolumny[docelowa]
-        karty_przenoszone = k_zrodlowa[-ile_kart:] #Wybieram ostanie ile_kart elementów
-        if karty_przenoszone[0].widoczna == False:
-            return False #Zapobiegamy przeniesieniu zakrytych kart
+    def perform_move(self, card_stack, source, destination):
+        """ Wykonuje przeniesienie kart i odkrywa nową kartę w tableau. """
+        source_type, source_idx = source
+        dest_type, dest_idx = destination
 
-        if (not k_docelowa and karty_przenoszone[0].ranga == 13) or \
-            (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1):
-            k_docelowa.extend(karty_przenoszone)
-            del k_zrodlowa[-ile_kart:] 
-            self._odkryj_ostatnia(zrodlowa)
-            return True
-        return False
+        # Usuń karty ze źródła
+        if source_type == 'waste':
+            self.waste.pop()
+        elif source_type == 'foundation':
+            self.foundations[source_idx].pop()
+        elif source_type == 'tableau':
+            num_to_move = len(card_stack)
+            self.tableau[source_idx] = self.tableau[source_idx][:-num_to_move]
+            # KLUCZOWE: Odkryj nową wierzchnią kartę, jeśli jest zakryta
+            if self.tableau[source_idx] and not self.tableau[source_idx][-1]['face_up']:
+                self.tableau[source_idx][-1]['face_up'] = True
 
-    def _odkryj_ostatnia(self, indeks: int):
-        kolumna = self.kolumny[indeks]
-        if kolumna:
-            kolumna[-1].widoczna = True 
+        # Dodaj karty do celu
+        if dest_type == 'foundation':
+            self.foundations[dest_idx].extend(card_stack)
+        elif dest_type == 'tableau':
+            self.tableau[dest_idx].extend(card_stack)
+            
+    def auto_move_to_foundation(self, source_info):
+        """ Próbuje automatycznie przenieść kartę na odpowiedni fundament. """
+        source_type, source_idx, card_idx = source_info
 
-    def czy_gra_wygrana(self):
-        for lista in self.fundamenty.values():
-            if len(lista) !=13:
+        if source_type == 'tableau':
+            # Możemy przenosić tylko wierzchnią kartę ze stosu
+            if card_idx != len(self.game.tableau[source_idx]) - 1:
                 return False
-        return True 
+            card = self.game.tableau[source_idx][-1]
+        elif source_type == 'waste':
+            if not self.game.waste: return False
+            card = self.game.waste[-1]
+        else:
+            return False
+
+        # Znajdź pasujący fundament
+        for i in range(4):
+            if self.is_valid_for_foundation(card, i):
+                self.perform_move([card], (source_type, source_idx), ('foundation', i))
+                return True
+        return False
+
+
+    def is_valid_for_foundation(self, card, foundation_index):
+        """ Sprawdza, czy karta może być położona na danym fundamencie. """
+        foundation_pile = self.foundations[foundation_index]
+        if not foundation_pile:
+            return card['rank'] == 'A'
+        
+        top_card = foundation_pile[-1]
+        return (card['suit'] == top_card['suit'] and
+                self.rank_values[card['rank']] == self.rank_values[top_card['rank']] + 1)
+
+    def is_valid_for_tableau(self, card, tableau_index):
+        """ Sprawdza, czy karta może być położona w danej kolumnie tableau. """
+        tableau_pile = self.tableau[tableau_index]
+        if not tableau_pile:
+            return card['rank'] == 'K'
+
+        top_card = tableau_pile[-1]
+        if not top_card['face_up']: return False
+
+        return (self.card_colors[card['suit']] != self.card_colors[top_card['suit']] and
+                self.rank_values[card['rank']] == self.rank_values[top_card['rank']] - 1)
+
+    def check_win_condition(self):
+        """ Sprawdza, czy gra została wygrana. """
+        return all(len(f) == 13 for f in self.foundations)
