@@ -1,12 +1,6 @@
-import sys
 import random
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QAction, QMessageBox
-)
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QAction, QMessageBox
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
-
 from card_widgets import CardWidget, DropPlaceholder, CardColumnWidget
 
 
