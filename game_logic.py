@@ -14,11 +14,11 @@ class Karta:
 
     def __repr__(self):
         tl = {1:'A', 11:'J', 12:'Q', 13:'K'}
-        if self.ranga in tl.keys:
+        if self.ranga in tl.keys():
             wartosc = tl[self.ranga]
         else:
             wartosc = self.ranga
-        return f"{wartosc} {self.suit} {'widoczna' if self.widoczna else 'niewidoczna'}"
+        return f"{wartosc} {self.kolor} {'widoczna' if self.widoczna else 'niewidoczna'}"
     
     def kolor_podstawowy(self):
         return 'czerwony' if self.kolor in ['karo', 'kier'] else 'czarny'
@@ -31,7 +31,7 @@ class Gra:
         self.fundamenty = {
             'pik': [], 'kier': [], 'karo': [], 'trefl':[]
         }
-        self._zacznij_gre
+        self._zacznij_gre()
     
     def _zacznij_gre(self):
         kolory = ['pik', 'kier','karo','trefl']
@@ -86,7 +86,7 @@ class Gra:
     
     def przenies_z_kolumny_do_fundamentu(self, zrodlowa: int):
         """Przenieś jedną kartę z wybranej kolumny, jeśli to możliwe"""
-        kolumna = self.kolumny(zrodlowa)
+        kolumna = self.kolumny[zrodlowa]
         if not kolumna:
             return False
         
@@ -108,14 +108,20 @@ class Gra:
             return False #Zapobiegamy przeniesieniu zakrytych kart
 
         if (not k_docelowa and karty_przenoszone[0].ranga == 13) or \
-            (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1)
+            (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1):
             k_docelowa.extend(karty_przenoszone)
             k_zrodlowa = k_zrodlowa[:-ile_kart] 
             self._odkryj_ostatnia(zrodlowa)
             return True
         return False
 
-    def _odkryj_ostania(self, indeks: int):
+    def _odkryj_ostatnia(self, indeks: int):
         kolumna = self.kolumny[indeks]
         if kolumna and kolumna[-1].widoczna:
             kolumna[-1].widoczna = True 
+
+    def czy_gra_wygrana(self):
+        for lista in self.fundamenty.values():
+            if len(lista) !=13:
+                return False
+        return True 
