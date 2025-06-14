@@ -1,9 +1,4 @@
-import sys
-import random
-from PyQt5.QtWidgets import (
-    QApplication, QLabel, QWidget, QVBoxLayout,
-    QMainWindow, QHBoxLayout, QSpacerItem, QSizePolicy
-)
+from PyQt5.QtWidgets import (QLabel, QWidget)
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QPixmap, QDrag
 
