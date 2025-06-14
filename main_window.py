@@ -20,12 +20,32 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         central_widget = QWidget()
+        central_widget.setStyleSheet("""
+            background-color: #0b6623;
+            background-image:
+                radial-gradient(rgba(255,255,255,0.05) 10%, transparent 11%),
+                radial-gradient(rgba(0,0,0,0.1) 10%, transparent 11%);
+            background-position: 0 0, 5px 5px;
+            background-repeat: repeat;
+        """)
         self.setCentralWidget(central_widget)
+
+        '''
+        #  Dodanie tła z folderu resources
+        central_widget.setStyleSheet("""
+            QWidget {
+                background-image: url('resources/background.png');
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: cover;
+            }
+        """)'''
+        
 
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
-        # 🔹 Górny rząd: Stock, Waste, Foundations
+        #  Górny rząd: Stock, Waste, Foundations
         top_row = QHBoxLayout()
 
         self.stock = DropPlaceholder("STOCK")
@@ -46,7 +66,7 @@ class MainWindow(QMainWindow):
             top_row.addWidget(f)
             self.foundations.append(f)
 
-        # 🔸 Tableau: 7 kolumn
+        #  Tableau: 7 kolumn
         tableau_row = QHBoxLayout()
         self.tableau_columns = []
         for i in range(7):
@@ -55,7 +75,7 @@ class MainWindow(QMainWindow):
             tableau_row.addWidget(col)
             self.tableau_columns.append(col)
 
-        # 🔻 Przyciski
+        #  Przyciski
         button_row = QHBoxLayout()
         self.new_game_btn = QPushButton("🎲 Nowa gra")
         self.undo_btn = QPushButton("⏪ Cofnij")
@@ -102,6 +122,9 @@ class MainWindow(QMainWindow):
         deck = [(suit, rank) for suit in suits for rank in ranks]
         random.shuffle(deck)
         self.card_stack = deck
+        self.clear_tableau()
+        self.deal_initial_cards()
+
 
     def draw_card(self):
         if self.card_stack:
@@ -121,3 +144,28 @@ class MainWindow(QMainWindow):
 
     def undo_move(self):
         QMessageBox.information(self, "Cofnij", "Cofanie ruchów jeszcze niezaimplementowane.")
+   
+    def deal_initial_cards(self):
+        for i in range(7):
+            for j in range(i + 1):
+                card_data = self.card_stack.pop(0)
+                face_up = (j == i)  # tylko ostatnia karta w kolumnie ma być odkryta
+
+                # Jeśli karta ma być zakryta, użyj specjalnego typu
+                if face_up:
+                    card = CardWidget(card_data, parent=self.tableau_columns[i])
+                else:
+                    card = CardWidget(('tył_karty', ''), parent=self.tableau_columns[i])
+                    card.card_data = card_data  # zapamiętaj prawdziwą kartę
+
+                y_offset = 10 + j * 30
+                card.move(10, y_offset)
+                card.show()
+                self.tableau_columns[i].cards.append(card)
+        
+    def clear_tableau(self):
+        for column in self.tableau_columns:
+            for card in column.cards:
+                card.setParent(None)
+                card.deleteLater()
+            column.cards.clear()
