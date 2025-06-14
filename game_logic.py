@@ -54,7 +54,7 @@ class Gra:
         elif self.stos:
             karta = self.stos.pop(0)
             karta.widoczna = True
-            self.waste.append(karta)
+            self.odrzucone.append(karta)
     
     
     def przenies_ze_stosu_do_kolumny(self, docelowa: int):
@@ -70,4 +70,22 @@ class Gra:
             return True
         
         return False
-    
+
+    def przenies_miedzy_kolumnami(self, zrodlowa: int, docelowa: int, ile_kart = 1):
+        k_zrodlowa = self.kolumny[zrodlowa]
+        k_docelowa = self.kolumny[docelowa]
+        karty_przenoszone = k_zrodlowa[-ile_kart:] #Wybieram ostanie ile_kart elementów
+        if karty_przenoszone[0].widoczna == False:
+            return False #Zapobiegamy przeniesieniu zakrytych kart
+
+        if (not k_docelowa and karty_przenoszone[0].ranga == 13) or (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1)
+            k_docelowa.extend(karty_przenoszone)
+            k_zrodlowa = k_zrodlowa[:-ile_kart] 
+            self._odkryj_ostatnia(zrodlowa)
+            return True
+        return False
+
+    def _odkryj_ostania(self, indeks: int):
+        kolumna = self.kolumny[indeks]
+        if kolumna and kolumna[-1].widoczna:
+            kolumna[-1].widoczna = True 
