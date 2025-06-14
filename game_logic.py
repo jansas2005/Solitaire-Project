@@ -96,7 +96,7 @@ class Gra:
         if (not fundament and karta.ranga == 1) or (fundament and karta.ranga == fundament[-1].ranga + 1):
             fundament.append(karta)
             kolumna.pop()
-            self._odkryj_ostania(zrodlowa)
+            self._odkryj_ostatnia(zrodlowa)
             return True
         return False
 
@@ -110,14 +110,14 @@ class Gra:
         if (not k_docelowa and karty_przenoszone[0].ranga == 13) or \
             (k_docelowa and k_docelowa[-1].widoczna and karty_przenoszone[0].kolor_podstawowy() != k_docelowa[-1].kolor_podstawowy() and karty_przenoszone[0].ranga == k_docelowa[-1].ranga - 1):
             k_docelowa.extend(karty_przenoszone)
-            k_zrodlowa = k_zrodlowa[:-ile_kart] 
+            del k_zrodlowa[-ile_kart:] 
             self._odkryj_ostatnia(zrodlowa)
             return True
         return False
 
     def _odkryj_ostatnia(self, indeks: int):
         kolumna = self.kolumny[indeks]
-        if kolumna and kolumna[-1].widoczna:
+        if kolumna:
             kolumna[-1].widoczna = True 
 
     def czy_gra_wygrana(self):
