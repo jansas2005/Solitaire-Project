@@ -1,5 +1,4 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QAction, QMessageBox, QApplication
-
 from card_widgets import CardWidget, DropPlaceholder, CardColumnWidget
 from game_logic import GameLogic
 
@@ -169,7 +168,7 @@ class MainWindow(QMainWindow):
                 """)
                 placeholder.label.show()
                 placeholder.show()
-                
+
             # Pokaż górną kartę
             else:
                 placeholder.label.hide()
