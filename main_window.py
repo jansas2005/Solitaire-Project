@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
                 """)
                 placeholder.label.show()
                 placeholder.show()
+                
             # Pokaż górną kartę
             else:
                 placeholder.label.hide()
