@@ -1,8 +1,10 @@
-# game_logic.py
 import random
 
 class GameLogic:
     def __init__(self):
+        """Tworzenie logiki gry pasjans"""
+
+        # Definicje rang i kolorów dla kart
         self.suits = ['wino', 'serce', 'diament', 'żołędź']
         self.ranks = ['A'] + [str(n) for n in range(2, 11)] + ['J', 'Q', 'K']
         self.rank_values = {rank: i for i, rank in enumerate(self.ranks, 1)}
@@ -11,21 +13,26 @@ class GameLogic:
             'serce': 'red', 'diament': 'red'
         }
         
-        # ZMIANA: Definiujemy, jaki kolor należy do którego fundamentu.
-        # Kolejność MUSI odpowiadać symbolom w MainWindow: ♠, ♥, ♦, ♣
+        # Tworzenie kolorów dla kart
         self.foundation_suits = ['wino', 'serce', 'diament', 'żołędź']
-        
+
+        # Tworzenie implementacji "nowa gry"
         self.new_game()
 
     def new_game(self):
+        """Przygotowuje nową grę z potasowaną talią i rozdaniem kart"""
+
+        # Utwórz pełną talię kart
         full_deck = [{'suit': s, 'rank': r, 'face_up': False} for s in self.suits for r in self.ranks]
         random.shuffle(full_deck)
 
+        # Inicjalizacja obszarów gry
         self.stock = full_deck
         self.waste = []
         self.foundations = [[] for _ in range(4)]
         self.tableau = [[] for _ in range(7)]
 
+        # Rozdanie kart do kolumn
         for i in range(7):
             for j in range(i + 1):
                 card = self.stock.pop()
@@ -34,23 +41,33 @@ class GameLogic:
                 self.tableau[i].append(card)
 
     def draw_from_stock(self):
+        """Dobiera kartę z talii na stos odrzuconych"""
+
+        # Jeśli talia pusta, zbierz karty
         if not self.stock:
             self.stock = self.waste[::-1]
             for card in self.stock:
                 card['face_up'] = False
             self.waste = []
             return True
-
+        
+        # Dobierz kartę z talii
         card = self.stock.pop()
         card['face_up'] = True
         self.waste.append(card)
         return True
 
     def attempt_move(self, card_stack, source, destination):
+        """
+        Próbuje wykonać ruch kartą/kartami.
+        Zwraca True jeśli ruch jest prawidłowy i został wykonany
+        """
         source_type, source_idx = source
         dest_type, dest_idx = destination
 
         is_valid = False
+
+        # Sprawdź typ docelowego miejsca
         if dest_type == 'foundation':
             if len(card_stack) == 1:
                 is_valid = self.is_valid_for_foundation(card_stack[0], dest_idx)
@@ -63,45 +80,54 @@ class GameLogic:
         return False
 
     def perform_move(self, card_stack, source, destination):
+        """Wykonuje fizyczne przeniesienie kart między lokalizacjami"""
         source_type, source_idx = source
         dest_type, dest_idx = destination
 
+        # Usuń karty ze źródła
         if source_type == 'waste': self.waste.pop()
         elif source_type == 'foundation': self.foundations[source_idx].pop()
         elif source_type == 'tableau':
             num_to_move = len(card_stack)
             self.tableau[source_idx] = self.tableau[source_idx][:-num_to_move]
+
+            # Odkryj nową górną kartę w kolumnie
             if self.tableau[source_idx] and not self.tableau[source_idx][-1]['face_up']:
                 self.tableau[source_idx][-1]['face_up'] = True
 
+        # Dodaj karty do celu
         if dest_type == 'foundation': self.foundations[dest_idx].extend(card_stack)
         elif dest_type == 'tableau': self.tableau[dest_idx].extend(card_stack)
 
     def is_valid_for_foundation(self, card, foundation_index):
+        """Sprawdza czy karta może być położona na wybrany fundament"""
         foundation_pile = self.foundations[foundation_index]
-        
-        # ZMIANA: Sprawdzamy oczekiwany kolor dla danego fundamentu
         expected_suit = self.foundation_suits[foundation_index]
 
+        # Pusty fundament - tylko As odpowiedniego koloru
         if not foundation_pile:
-            # Na pusty fundament można położyć tylko pasującego Asa
             return card['rank'] == 'A' and card['suit'] == expected_suit
         
+        # Niepusty fundament - karta musi być tego samego koloru i o 1 wyższa
         top_card = foundation_pile[-1]
-        # Karta musi być tego samego koloru co fundament i o jeden stopień wyższa
         return (card['suit'] == expected_suit and
                 self.rank_values[card['rank']] == self.rank_values[top_card['rank']] + 1)
 
     def is_valid_for_tableau(self, card, tableau_index):
+        """Sprawdza czy karta może być położona na wybraną kolumnę"""
         tableau_pile = self.tableau[tableau_index]
+
+        # Pusta kolumna - tylko Król
         if not tableau_pile:
             return card['rank'] == 'K'
 
         top_card = tableau_pile[-1]
         if not top_card['face_up']: return False
-
+        
+        # Karta musi być przeciwnym kolorem i o 1 niższa
         return (self.card_colors[card['suit']] != self.card_colors[top_card['suit']] and
                 self.rank_values[card['rank']] == self.rank_values[top_card['rank']] - 1)
 
     def check_win_condition(self):
+        """Sprawdza czy wszystkie fundamenty są kompletne (13 kart każdy)"""
         return all(len(f) == 13 for f in self.foundations)
