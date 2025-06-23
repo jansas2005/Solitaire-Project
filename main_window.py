@@ -75,12 +75,11 @@ class MainWindow(QMainWindow):
         splash_exit_btn.clicked.connect(self.close)
 
     def setup_game_ui(self):
-        """Budowa głównego interfejsu użytkownika gry""" # <<< ZMIENIONO NAZWĘ z setup_ui
-        self.main_game_widget = QWidget() # <<< ZMIENIONO central_widget na self.main_game_widget
+        """Budowa głównego interfejsu użytkownika gry""" 
+        self.main_game_widget = QWidget()
         self.main_game_widget.setObjectName("mainWidget")
         self.set_style_sheet(self.main_game_widget)
-        # self.setCentralWidget(self.main_game_widget) # <<< USUNIĘTO - ustawimy widget później
-
+        
         # Główne layouty
         main_layout = QVBoxLayout(self.main_game_widget)
         top_row = QHBoxLayout()  # Górny wiersz (talia, stos odrzuconych, fundamenty)
