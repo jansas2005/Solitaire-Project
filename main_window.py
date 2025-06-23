@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QAction, QMessageBox, QApplication, QLabel
-from PyQt5.QtCore import QTimer, QTime
+from PyQt5.QtCore import QTimer, QTime, Qt
+from PyQt5.QtGui import QFont
 from card_widgets import CardWidget, DropPlaceholder, CardColumnWidget
 from game_logic import GameLogic
 
@@ -11,11 +12,18 @@ class MainWindow(QMainWindow):
         # Inicjalizacja podstawowych komponentów gry
         self.game = GameLogic()  # Logika gry
         self.foundation_symbols = ['♠', '♥', '♦', '♣']  # Symbole dla stosów docelowych
+        
         self.setup_window_properties()  # Konfiguracja właściwości okna
-        self.setup_ui()  # Budowa interfejsu użytkownika
+        
+        # Przygotowanie obu widoków: ekranu startowego i widoku gry
+        self.setup_splash_screen()
+        self.setup_game_ui()
+        
         self.init_menu()  # Inicjalizacja menu
         self.connect_signals()  # Podłączenie sygnałów
-        self.start_new_game()  # Rozpoczęcie nowej gry
+        
+        # Na starcie pokaż ekran powitalny
+        self.setCentralWidget(self.splash_widget)
 
     def setup_window_properties(self):
         """Konfiguracja podstawowych właściwości okna głównego"""
@@ -24,15 +32,57 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)  # Timer do pomiaru czasu gry
         self.seconds_played = 0  # Licznik sekund gry
 
-    def setup_ui(self):
-        """Budowa głównego interfejsu użytkownika"""
-        central_widget = QWidget()
-        central_widget.setObjectName("mainWidget")
-        self.set_style_sheet(central_widget)
-        self.setCentralWidget(central_widget)
+    def setup_splash_screen(self):
+        """Budowa ekranu startowego"""
+        self.splash_widget = QWidget()
+        self.splash_widget.setObjectName("mainWidget") # Używamy tej samej nazwy, by odziedziczyć tło
+        self.set_style_sheet(self.splash_widget) # Aplikujemy ten sam arkusz stylów
+
+        layout = QVBoxLayout(self.splash_widget)
+        layout.addStretch()
+
+        # Tytuł gry
+        title_label = QLabel("Pasjans Klondike")
+        title_font = QFont("Arial", 60, QFont.Bold)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet("""
+            color: white; 
+            background: rgba(0, 0, 0, 0.4); 
+            padding: 20px; 
+            border-radius: 15px;
+        """)
+        title_label.setAlignment(Qt.AlignCenter)
+        
+        layout.addWidget(title_label)
+        layout.addSpacing(40)
+
+        # Przyciski na ekranie startowym
+        splash_buttons_layout = QHBoxLayout()
+        splash_new_game_btn = QPushButton("🚀 Rozpocznij Grę")
+        splash_exit_btn = QPushButton("❌ Wyjście")
+        
+        splash_buttons_layout.addStretch()
+        splash_buttons_layout.addWidget(splash_new_game_btn)
+        splash_buttons_layout.addSpacing(20)
+        splash_buttons_layout.addWidget(splash_exit_btn)
+        splash_buttons_layout.addStretch()
+        
+        layout.addLayout(splash_buttons_layout)
+        layout.addStretch()
+        
+        # Podłączenie sygnałów dla przycisków na ekranie startowym
+        splash_new_game_btn.clicked.connect(self.show_game_and_start)
+        splash_exit_btn.clicked.connect(self.close)
+
+    def setup_game_ui(self):
+        """Budowa głównego interfejsu użytkownika gry""" # <<< ZMIENIONO NAZWĘ z setup_ui
+        self.main_game_widget = QWidget() # <<< ZMIENIONO central_widget na self.main_game_widget
+        self.main_game_widget.setObjectName("mainWidget")
+        self.set_style_sheet(self.main_game_widget)
+        # self.setCentralWidget(self.main_game_widget) # <<< USUNIĘTO - ustawimy widget później
 
         # Główne layouty
-        main_layout = QVBoxLayout(central_widget)
+        main_layout = QVBoxLayout(self.main_game_widget)
         top_row = QHBoxLayout()  # Górny wiersz (talia, stos odrzuconych, fundamenty)
         tableau_row = QHBoxLayout()  # Wiersz kolumn roboczych
         stats_row = QHBoxLayout()  # Wiersz statystyk
@@ -55,6 +105,8 @@ class MainWindow(QMainWindow):
 
     def set_style_sheet(self, widget):
         """Ustawienie stylów CSS dla aplikacji"""
+        # Dodajemy import czcionki na górze pliku
+        from PyQt5.QtCore import Qt
         widget.setStyleSheet("""
             QWidget#mainWidget { 
                 border-image: url(resources/background.png) 0 0 0 0 stretch stretch;
@@ -62,9 +114,10 @@ class MainWindow(QMainWindow):
             QPushButton { 
                 background-color: white; 
                 border: 1px solid #888; 
-                padding: 5px 10px;
-                border-radius: 4px; 
-                min-width: 80px; 
+                padding: 10px 15px; /* Lekko powiększone dla lepszego wyglądu */
+                border-radius: 5px; 
+                min-width: 120px; /* Lekko poszerzone */
+                font-size: 14px; /* Dodano dla spójności */
                 font-weight: bold;
             }
             QPushButton:hover { background-color: #f0f0f0; }
@@ -76,7 +129,7 @@ class MainWindow(QMainWindow):
                 background: rgba(0, 0, 0, 0.5);
                 padding: 5px;
                 border-radius: 4px;
-            }             
+            }           
         """)
 
     def init_stock_and_waste(self, layout):
@@ -147,6 +200,7 @@ class MainWindow(QMainWindow):
 
     def connect_signals(self):
         """Podłączenie sygnałów do slotów"""
+        # Sygnały dla przycisków w grze
         self.new_game_btn.clicked.connect(self.start_new_game)
         self.undo_btn.clicked.connect(self.undo_move)
         self.exit_btn.clicked.connect(self.close)
@@ -310,6 +364,11 @@ class MainWindow(QMainWindow):
         dest_index = self.foundations_placeholders.index(dest_widget)
         self.handle_drop(source, ('foundation', dest_index))
 
+    def show_game_and_start(self):
+        """Zamienia widget na widok gry i rozpoczyna nową grę."""
+        self.setCentralWidget(self.main_game_widget)
+        self.start_new_game()
+        
     def start_new_game(self):
         """Rozpoczęcie nowej gry"""
         self.game.new_game()
